@@ -168,7 +168,7 @@ def get_recognized_number_ranking(assignments, spike_rates):
     summed_rates = [0] * 10
     num_assignments = [0] * 10
     for i in range(10):
-        num_assignments[i] = len(np.where(assignments == 1)[0])
+        num_assignments[i] = len(np.where(assignments == i)[0])
         if num_assignments[i] > 0:
             summed_rates[i] = np.sum(spike_rates[assignments == i]) / num_assignments[i]
     return np.argsort(summed_rates)[::-1]
