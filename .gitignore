@@ -1,0 +1,4 @@
+MNIST/
+__pycache__/
+brian2/
+weights/
