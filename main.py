@@ -148,7 +148,7 @@ def get_current_performance(performance, current_example_num):
 
 
 def plot_performance():
-    num_evaluations = int(nb_examples/update_interval)
+    num_evaluations = int(nb_examples/update_interval) + 1
     time_steps = range(0, num_evaluations)
     performance = np.zeros(num_evaluations)
     fig = b2.figure(3, figsize = (5, 5))
@@ -201,11 +201,28 @@ training = mnist.get_labeled_data([0, 1], True)
 end = time.time()
 print('Loaded training set in:', end - start, "s")
 
+start = time.time()
+testing = mnist.get_labeled_data([0, 1], False)
+end = time.time()
+print('Loaded testing set in:', end - start, "s")
+
 # ----------------------------
 # Parameters & 2nd Layer Equations
 # ----------------------------
 
-nb_examples = 10000
+test_mode = False
+
+if test_mode:
+    weight_path = 'weights/'
+    nb_examples = 100 # 10000
+    use_testing_set = True
+    ee_STDP_on = False
+    update_interval = nb_examples
+else:
+    weight_path = 'random2/'
+    nb_examples = 60000
+    use_testing_set = False
+    ee_STDP_on = True
 
 n_input = 784
 n_e = 100 # 400
@@ -213,9 +230,13 @@ n_i = n_e
 single_example_time = 0.35 * b2.second
 resting_time = 0.15 * b2.second
 runtime = nb_examples * (single_example_time + resting_time)
-update_interval = 100 # nb_examples
-weight_update_interval = 50
-save_connections_interval = 100
+if nb_examples <= 10000:
+    update_interval = 10 # nb_examples
+    weight_update_interval = 20
+else:
+    update_interval = 10000
+    weight_update_interval = 100
+save_connections_interval = 1000
 
 random_connections() # to be sure matrices have the right size
 
@@ -238,9 +259,12 @@ nu_ee_pre = 0.0001
 nu_ee_post = 0.01
 wmax = 1.0
 
-tc_theta = 1e7 * b2.ms
-theta_plus_e = 0.05 * b2.mV
-scr_e = 'v = v_reset_e; theta += theta_plus_e; timer = 0 * second'
+if test_mode:
+    scr_e = 'v = v_reset_e; timer = 0 * second'
+else:
+    tc_theta = 1e7 * b2.ms
+    theta_plus_e = 0.05 * b2.mV
+    scr_e = 'v = v_reset_e; theta += theta_plus_e; timer = 0 * second'
 offset = 20.0 * b2.mV
 
 neuron_eqs_e = '''
@@ -251,7 +275,10 @@ neuron_eqs_e = '''
         dgi/dt = -gi/(2.0 * ms) : 1
         '''
 
-neuron_eqs_e += '\n dtheta/dt = -theta/(tc_theta) : volt'
+if test_mode:
+    neuron_eqs_e += '\n theta : volt'
+else:
+    neuron_eqs_e += '\n dtheta/dt = -theta/(tc_theta) : volt'
 neuron_eqs_e += '\n dtimer/dt = 100.0e-3 : second'
 
 neuron_eqs_i = '''
@@ -291,7 +318,10 @@ neuron_group_i = b2.NeuronGroup(n_i, neuron_eqs_i, threshold='v > v_thresh_i', r
 
 neuron_group_e.v = v_rest_e - 40. * b2.mV
 neuron_group_i.v = v_rest_i - 40. * b2.mV
-neuron_group_e.theta = np.ones((n_e)) * 20.0 * b2.mV
+if test_mode:
+    neuron_group_e.theta = np.load(weight_path + 'theta.npy') * b2.volt
+else:
+    neuron_group_e.theta = np.ones((n_e)) * 20.0 * b2.mV
 
 print('Creating synapses...')
 
@@ -332,8 +362,11 @@ print('Creating input layer neuron group and synapses...')
 input_group = b2.PoissonGroup(n_input, 0 * b2.Hz)
 rate_monitor_input = b2.PopulationRateMonitor(input_group)
 
-weight_matrix_input = get_matrix_from_file('random2/XeAe.npy')
-synapses_input = b2.Synapses(input_group, neuron_group_e, eqs_stdp_ee, on_pre=eqs_stdp_pre_ee, on_post=eqs_stdp_post_ee)
+weight_matrix_input = get_matrix_from_file(weight_path + 'XeAe.npy')
+if ee_STDP_on:
+    synapses_input = b2.Synapses(input_group, neuron_group_e, eqs_stdp_ee, on_pre=eqs_stdp_pre_ee, on_post=eqs_stdp_post_ee)
+else:
+    synapses_input = b2.Synapses(input_group, neuron_group_e, 'w : 1', on_pre='ge += w')
 synapses_input.connect()
 synapses_input.w = weight_matrix_input.flatten()
 synapses_input.delay = 'rand()*10*ms'
@@ -347,7 +380,8 @@ assignments = np.zeros(n_e)
 input_numbers = [0] * nb_examples
 output_numbers = np.zeros((nb_examples, 10))
 
-input_weight_monitor, fig_weights = plot_2d_input_weights()
+if not test_mode:
+    input_weight_monitor, fig_weights = plot_2d_input_weights()
 
 performance_monitor, performance, fig_performance = plot_performance()
 
@@ -357,18 +391,24 @@ b2.run(0 * b2.ms)
 
 j = 0
 while j < int(nb_examples):
-    normalize_weights()
+    if test_mode:
+        if use_testing_set:
+            rates = [col / 8. * input_intensity * b2.Hz for row in testing[0][j%10000] for col in row]
+        else:
+            rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%60000] for col in row]
+    else:
+        normalize_weights()
+        rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%60000] for col in row]
 
-    rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%60000] for col in row]
     input_group.rates = rates
 
     b2.run(single_example_time, report='text')
 
     if j % update_interval == 0 and j > 0:
         assignments = get_new_assignments(result_monitor[:], input_numbers[j-update_interval : j])
-    if j % weight_update_interval == 0:
+    if j % weight_update_interval == 0 and not test_mode:
         update_2d_input_weights(input_weight_monitor, fig_weights)
-    if j % save_connections_interval == 0 and j > 0:
+    if j % save_connections_interval == 0 and j > 0 and not test_mode:
         save_connections(str(j))
         save_theta(str(j))
 
@@ -383,10 +423,14 @@ while j < int(nb_examples):
     else:
         print('-- OK')
         result_monitor[j%update_interval,:] = current_spike_count
-        input_numbers[j] = training[1][j%60000]
+        if test_mode and use_testing_set:
+            input_numbers[j] = testing[1][j%10000]
+        else:
+            input_numbers[j] = training[1][j%60000]
 
         output_numbers[j,:] = get_recognized_number_ranking(assignments, result_monitor[j%update_interval,:])
 
+        print(j)
         if j % 10 == 0 and j > 0:
             print('Runs done:', j, 'of', nb_examples)
         if j % update_interval == 0 and j > 0:
