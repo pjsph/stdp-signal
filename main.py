@@ -1,6 +1,4 @@
 import time
-
-from brian2 import rand, synapses
 import mnist
 import brian2 as b2
 import brian2tools as b2tools
