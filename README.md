@@ -2,6 +2,10 @@
 
 Carrying <https://github.com/peter-u-diehl/stdp-mnist> from [Brian1](https://github.com/brian-team/brian) to [Brian2](https://github.com/brian-team/brian2).
 
+## Compatible Python versions
+
+Python 3.10.4
+
 ## Installation
 
 1. Clone the repository on your local machine :
