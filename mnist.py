@@ -74,7 +74,9 @@ def get_labeled_data(only = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], train = True, max_am
     if images and labels:
         to_return_images = [images[i] for i in range(len(images)) if labels[i] in only]
         to_return_labels = [i for i in labels if i in only]
+        print("Number of useable images/labels:",len(to_return_images))
 
         return to_return_images, to_return_labels
+    
 
     return [], []

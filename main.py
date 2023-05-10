@@ -333,9 +333,9 @@ def get_new_assignments(result_monitor, input_numbers):
 # Parameters & 2nd Layer Equations
 # ----------------------------
 
-#seulement le nombre d'images max à charger en mémoire.
-#si pas tous les digits de 0 à 9 sont utilisés, le nombre d'images
-#réellement chargées sera inférieur à ce max
+#only the maximum number of images loaded in the memory.
+#if not all the 0-9 digits are used, the actual number of
+#loaded images will be lesser than this maximum
 loaded_training_images = 60000 #60000 (ou None)
 loaded_testing_images = 10000 #10000 (ou None)
 
@@ -542,12 +542,12 @@ j = 0
 while j < int(nb_examples):
     if test_mode:
         if use_testing_set:
-            rates = [col / 8. * input_intensity * b2.Hz for row in testing[0][j%loaded_testing_images] for col in row]
+            rates = [col / 8. * input_intensity * b2.Hz for row in testing[0][j%len(testing[0])] for col in row]
         else:
-            rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%loaded_training_images] for col in row]
+            rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%len(training[0])] for col in row]
     else:
         normalize_weights()
-        rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%loaded_training_images] for col in row]
+        rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%len(training[0])] for col in row]
 
     input_group.rates = rates
 
@@ -573,9 +573,9 @@ while j < int(nb_examples):
         print('-- OK')
         result_monitor[j%update_interval,:] = current_spike_count
         if test_mode and use_testing_set:
-            input_numbers[j] = testing[1][j%loaded_testing_images]
+            input_numbers[j] = testing[1][j%len(testing[1])]
         else:
-            input_numbers[j] = training[1][j%loaded_training_images]
+            input_numbers[j] = training[1][j%len(training[1])]
 
         output_numbers[j,:] = get_recognized_number_ranking(assignments, result_monitor[j%update_interval,:])
 
