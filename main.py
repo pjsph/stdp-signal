@@ -209,30 +209,6 @@ def get_current_performance(performance, current_example_num):
     return performance
 
 
-def update_performance_plot(im, performance, current_example_num, fig):
-    """Update the network performance plot
-
-    Parameters
-    ----------
-    im
-        Matplotlib image
-    performance
-        Array storing the performances
-    current_example_num
-        Index of the current image the network is training on
-    fig
-        Matplotlib figure
-
-    Returns
-    -------
-    im
-        Matplotlib image
-    performance
-        Array storing the network performances, updated
-    """
-    return im, performance
-
-
 def animate_performance_plot(q, time_steps, performance):
     fig = b2.figure(3, figsize = (5, 5))
     ax = fig.add_subplot(111)
