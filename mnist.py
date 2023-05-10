@@ -1,6 +1,6 @@
 import gzip as gz
 
-def get_labeled_data(only = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], train = True):
+def get_labeled_data(only = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], train = True, max_amount=None):
     """Get MNIST images and labels
 
     Parameters
@@ -31,7 +31,10 @@ def get_labeled_data(only = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], train = True):
         print("Magic is:", magic)
 
         nblab = f.read(4)
-        nblab = int.from_bytes(nblab, 'big')
+        if max_amount:
+            nblab = max_amount
+        else:
+            nblab = int.from_bytes(nblab, 'big')
         print("Number of labels:", nblab)
 
         labels = [f.read(1) for i in range(nblab)]
@@ -44,7 +47,10 @@ def get_labeled_data(only = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], train = True):
         print("Magic is:", magic)
 
         nbimg = f.read(4)
-        nbimg = int.from_bytes(nbimg, 'big')
+        if max_amount:
+            nbimg = max_amount
+        else:
+            nbimg = int.from_bytes(nbimg, 'big')
         print("Number of images:", nbimg)
 
         nbrow = f.read(4)
