@@ -2,6 +2,7 @@ import time
 
 from matplotlib import contextlib
 import mnist
+import signals
 import brian2 as b2
 import brian2tools as b2tools
 import numpy as np
@@ -203,8 +204,7 @@ def get_current_performance(performance, current_example_num):
     current_evaluation = int(current_example_num/update_interval)
     start_num = current_example_num - update_interval
     end_num = current_example_num
-    difference = output_numbers[start_num:end_num, 0] - input_numbers[start_num:end_num]
-    correct = len(np.where(difference == 0)[0])
+    correct = len(np.where(output_numbers[start_num:end_num, 0] == input_numbers[start_num:end_num])[0])
     performance[current_evaluation] = correct / float(update_interval) * 100
     return performance
 
@@ -242,11 +242,11 @@ def get_recognized_number_ranking(assignments, spike_rates):
         being the actual number
     """
     summed_rates = [0] * 10
-    num_assignments = [0] * 10
-    for i in range(10):
-        num_assignments[i] = len(np.where(assignments == i)[0])
-        if num_assignments[i] > 0:
-            summed_rates[i] = np.sum(spike_rates[assignments == i]) / num_assignments[i]
+    labels = signals.get_labels()
+    for i in range(len(labels)):
+        num_assignments = len(np.where(assignments == labels[i])[0])
+        if num_assignments > 0:
+            summed_rates[i] = np.sum(spike_rates[assignments == labels[i]]) / num_assignments
     return np.argsort(summed_rates)[::-1]
 
 
@@ -267,17 +267,17 @@ def get_new_assignments(result_monitor, input_numbers):
         Array storing, for each excitatory neuron, the number it is more likely
         to spike to
     """
-    assignments = np.zeros(n_e)
+    assignments = np.empty(n_e, str)
     input_nums = np.asarray(input_numbers)
     maximum_rate = [0] * n_e
-    for j in range(10):
+    for j in signals.get_labels():
         num_assignments = len(np.where(input_nums == j)[0])
         if num_assignments > 0:
             rate = np.sum(result_monitor[input_nums == j], axis = 0) / num_assignments
-        for i in range(n_e):
-            if rate[i] > maximum_rate[i]:
-                maximum_rate[i] = rate[i]
-                assignments[i] = j
+            for i in range(n_e):
+                if rate[i] > maximum_rate[i]:
+                    maximum_rate[i] = rate[i]
+                    assignments[i] = j
     return assignments
 
   
@@ -297,10 +297,10 @@ if __name__ == "__main__":
 
     if test_mode:
         weight_path = 'weights/'
-        nb_examples = 100 # 10000
+        nb_examples = 10 # 10000
         use_testing_set = True
         ee_STDP_on = False
-        update_interval = nb_examples
+        update_interval = 100 # nb_examples
     else:
         weight_path = 'random2/'
         nb_examples = 100 # 60000
@@ -311,7 +311,7 @@ if __name__ == "__main__":
         if max(loaded_training_images,loaded_testing_images) < nb_examples:
             print("ERREUR:  Nombre d'examples présentés inférieur au nombre d'images chargées")
         
-    n_input = 784
+    n_input = 16
     n_e = 400 # 400
     n_i = n_e
     single_example_time = 0.35 * b2.second
@@ -459,20 +459,20 @@ if __name__ == "__main__":
     synapses_input.delay = 'rand()*10*ms'
 
     # -----------------------------
-    # Load MNIST
+    # Load signals
     # -----------------------------
 
-    print('Loading MNIST data...')
+    print('Loading signals data...')
 
-    start = time.time()
-    training = mnist.get_labeled_data([0, 1], True)
-    end = time.time()
-    print('Loaded training set in:', end - start, "s")
-
-    start = time.time()
-    testing = mnist.get_labeled_data([0, 1], False)
-    end = time.time()
-    print('Loaded testing set in:', end - start, "s")
+#    start = time.time()
+#    training = mnist.get_labeled_data([0, 1], True)
+#    end = time.time()
+#    print('Loaded training set in:', end - start, "s")
+#
+#    start = time.time()
+#    testing = mnist.get_labeled_data([0, 1], False)
+#    end = time.time()
+#    print('Loaded testing set in:', end - start, "s")
     
     # ----------------------------
     # Simulation
@@ -502,14 +502,12 @@ if __name__ == "__main__":
 
     j = 0
     while j < int(nb_examples):
-        if test_mode:
-            if use_testing_set:
-                rates = [col / 8. * input_intensity * b2.Hz for row in testing[0][j%len(testing[0])] for col in row]
-            else:
-                rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%len(training[0])] for col in row]
-        else:
+        signal = signals.get_random_signal()
+
+        rates = [digit / 8. * input_intensity * b2.Hz for digit in signal[1]]
+
+        if not test_mode:
             normalize_weights()
-            rates = [col / 8. * input_intensity * b2.Hz for row in training[0][j%len(training[0])] for col in row]
 
         input_group.rates = rates
 
@@ -534,10 +532,7 @@ if __name__ == "__main__":
         else:
             print('-- OK')
             result_monitor[j%update_interval,:] = current_spike_count
-            if test_mode and use_testing_set:
-                input_numbers[j] = testing[1][j%len(testing[1])]
-            else:
-                input_numbers[j] = training[1][j%len(training[1])]
+            input_numbers[j] = signal[0]
 
             output_numbers[j,:] = get_recognized_number_ranking(assignments, result_monitor[j%update_interval,:])
 
