@@ -205,6 +205,8 @@ def get_current_performance(performance, current_example_num):
     start_num = current_example_num - update_interval
     end_num = current_example_num
     correct = len(np.where(output_numbers[start_num:end_num, 0] == input_numbers[start_num:end_num])[0])
+    print('=============', correct)
+    print(output_numbers, "///////", input_numbers)
     performance[current_evaluation] = correct / float(update_interval) * 100
     return performance
 
@@ -241,13 +243,13 @@ def get_recognized_number_ranking(assignments, spike_rates):
         Array storing the recognized numbers sorted by their probability of
         being the actual number
     """
-    summed_rates = [0] * 10
     labels = signals.get_labels()
+    summed_rates = [0] * len(labels)
     for i in range(len(labels)):
         num_assignments = len(np.where(assignments == labels[i])[0])
         if num_assignments > 0:
             summed_rates[i] = np.sum(spike_rates[assignments == labels[i]]) / num_assignments
-    return np.argsort(summed_rates)[::-1]
+    return np.asarray(labels)[np.argsort(summed_rates)[::-1]]
 
 
 def get_new_assignments(result_monitor, input_numbers):
@@ -288,7 +290,7 @@ if __name__ == "__main__":
     # ----------------------------
 
     #only the maximum number of images loaded in the memory.
-    #if not all the 0-9 digits are used, the actual number of
+    #if not all the 0-9 digits are used, the ACtual number of
     #loaded images will be lesser than this maximum
     loaded_training_images = 60000 #60000 (ou None)
     loaded_testing_images = 10000 #10000 (ou None)
@@ -479,9 +481,9 @@ if __name__ == "__main__":
     # ----------------------------
 
     previous_spike_count = np.zeros(n_e)
-    assignments = np.zeros(n_e)
+    assignments = np.empty(n_e, str)
     input_numbers = [0] * nb_examples
-    output_numbers = np.zeros((nb_examples, 10))
+    output_numbers = np.empty((nb_examples, len(signals.get_labels())), np.dtype('U3'))
 
     if not test_mode:
         weight_data_queue = Queue()
