@@ -133,14 +133,15 @@ def random_connections(path = 'random2/'):
     np.save(path + 'AiAe', matrix_ie)
     np.save(path + 'XeAe', matrix_input)
 
-def normalize_weights():
+def normalize_weights(sum_value=78.0):
     """Normalize weights so that the sum of all weights going from input neurons
-    to a specific excitatory neuron is 78
+    to a specific excitatory neuron is the number of input neurons
+    divided by the number of classes
     """
     conn_matrix = synapses_input.w
     temp_conn = np.copy(conn_matrix).reshape((n_input, n_e))
     colSums = np.sum(temp_conn, axis = 0)
-    colFactors = 78./colSums
+    colFactors = float(sum_value)/colSums
     for j in range(n_e):
         temp_conn[:,j] *= colFactors[j]
     synapses_input.w = temp_conn.flatten()
@@ -502,6 +503,8 @@ if __name__ == "__main__":
 
     b2.run(0 * b2.ms)
 
+    number_of_labels = len(signals.get_labels())
+
     j = 0
     while j < int(nb_examples):
         signal = signals.get_random_signal()
@@ -509,7 +512,7 @@ if __name__ == "__main__":
         rates = [digit / 8. * input_intensity * b2.Hz for digit in signal[1]]
 
         if not test_mode:
-            normalize_weights()
+            normalize_weights(n_input/number_of_labels)
 
         input_group.rates = rates
 
