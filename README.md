@@ -1,6 +1,10 @@
-# stdp-mnist
+# stdp-signal
 
-Carrying <https://github.com/peter-u-diehl/stdp-mnist> from [Brian1](https://github.com/brian-team/brian) to [Brian2](https://github.com/brian-team/brian2).
+Until `mnist` tag, the goal was to carry <https://github.com/peter-u-diehl/stdp-mnist> from [Brian1](https://github.com/brian-team/brian) to [Brian2](https://github.com/brian-team/brian2).
+
+After that, the new goal is to implement a SNN capable of recognizing much shorter signals.
+
+Project made as part of the PIR.
 
 ## Compatible Python versions
 
@@ -10,7 +14,7 @@ Python 3.10.4
 
 1. Clone the repository on your local machine :
 ```
-git clone https://github.com/pjsph/stdp-mnist.git
+git clone https://github.com/pjsph/stdp-signal.git
 ```
 2. Download MNIST database and put the files in a new **./MNIST/** folder.
 3. Make sure you have **./random/**, **./random2/** and **./weights/** folders in your project directory (even if they are empty)
